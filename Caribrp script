@@ -520,16 +520,17 @@ local function startDrive()
             if dir.Magnitude > 0 then
                 dir = dir.Unit
 
-                root.CFrame = root.CFrame:Lerp(
-                    CFrame.new(root.Position, root.Position + dir),
-                    0.2
+                root.CFrame = CFrame.new(
+    root.Position,
+    root.Position + dir
+)
                 )
 
                 root.AssemblyLinearVelocity = Vector3.new(
-                    dir.X * getfenv().DriveSpeed,
-                    root.AssemblyLinearVelocity.Y,
-                    dir.Z * getfenv().DriveSpeed
-                )
+    dir.X * getfenv().DriveSpeed,
+    0,
+    dir.Z * getfenv().DriveSpeed
+)
             end
 
             if (root.Position - target).Magnitude < 35 then
