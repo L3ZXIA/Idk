@@ -61,7 +61,7 @@ task.wait(2) -- small pause before executing
 
 --// EXECUTE SCRIPT AFTER "LOADING"
 local success, err = pcall(function()
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/L3ZXIA/Idk/refs/heads/main/Caribrp%20script"))()
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/L3ZXIA/Idk/ce36838becf9f5e6cf5fd27a4887d5b2da7f87ca/Caribrp%20script"))()
 end)
 
 if not success then
