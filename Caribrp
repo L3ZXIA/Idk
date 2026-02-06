@@ -30,7 +30,7 @@ label.TextColor3 = Color3.fromRGB(255, 255, 255)
 label.Parent = frame
 
 task.spawn(function()
-    task.wait(1) -- Optional: show loader for 3 second
+    task.wait(5) -- Optional: show loader for 5 second
 
     local success, err = pcall(function()
         loadstring(game:HttpGet("https://raw.githubusercontent.com/L3ZXIA/Idk/refs/heads/main/Caribrp%20script", true))()
