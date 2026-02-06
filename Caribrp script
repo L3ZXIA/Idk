@@ -485,45 +485,70 @@ local function getCar()
     return car, root
 end
 
+_G.AutoDriveRunning = false
 local function startDrive()
+    if _G.AutoDriveRunning then return end
+    _G.AutoDriveRunning = true
+
     task.spawn(function()
         local index = 1
-        while AutoDrive do
+
+        while getfenv().AutoDrive do
             local car, root = getCar()
             if not car then
                 task.wait(0.3)
                 continue
             end
 
-            if not DidTeleport then
-                car:PivotTo(CFrame.new(ROUTE[1] + Vector3.new(0, 2, 0)))
+            if not getfenv().DidTeleport then
+                car:PivotTo(CFrame.new(
+                    Vector3.new(ROUTE[1].X, ROUTE[1].Y + 2, ROUTE[1].Z)
+                ))
                 task.wait(0.4)
-                DidTeleport = true
+                getfenv().DidTeleport = true
             end
 
-            local target = Vector3.new(ROUTE[index].X, root.Position.Y, ROUTE[index].Z)
+            local target = Vector3.new(
+                ROUTE[index].X,
+                root.Position.Y,
+                ROUTE[index].Z
+            )
+
             local dir = target - root.Position
             dir = Vector3.new(dir.X, 0, dir.Z)
 
             if dir.Magnitude > 0 then
                 dir = dir.Unit
-                root.CFrame = root.CFrame:Lerp(CFrame.new(root.Position, root.Position + dir), 0.2)
-                root.AssemblyLinearVelocity = Vector3.new(dir.X * DriveSpeed, root.AssemblyLinearVelocity.Y, dir.Z * DriveSpeed)
+
+                root.CFrame = root.CFrame:Lerp(
+                    CFrame.new(root.Position, root.Position + dir),
+                    0.2
+                )
+
+                root.AssemblyLinearVelocity = Vector3.new(
+                    dir.X * getfenv().DriveSpeed,
+                    root.AssemblyLinearVelocity.Y,
+                    dir.Z * getfenv().DriveSpeed
+                )
             end
 
             if (root.Position - target).Magnitude < 35 then
                 index += 1
-                if index > #ROUTE then index = 1 end
+                if index > #ROUTE then
+                    index = 1
+                end
             end
 
-            RunService.Heartbeat:Wait()
+            task.wait(0.05)
         end
 
         local _, root = getCar()
         if root then
             root.AssemblyLinearVelocity = Vector3.zero
         end
-        DidTeleport = false
+
+        getfenv().DidTeleport = false
+        _G.AutoDriveRunning = false
     end)
 end
 
@@ -539,9 +564,14 @@ autoToggle.Parent = scroll
 Instance.new("UICorner", autoToggle).CornerRadius = UDim.new(0, 8)
 
 autoToggle.MouseButton1Click:Connect(function()
-    AutoDrive = not AutoDrive
-    autoToggle.Text = AutoDrive and "Auto Drive: ON" or "Auto Drive: OFF"
-    if AutoDrive then startDrive() end
+    getfenv().AutoDrive = not getfenv().AutoDrive
+    autoToggle.Text = getfenv().AutoDrive and "Auto Drive: ON" or "Auto Drive: OFF"
+
+    if getfenv().AutoDrive then
+        startDrive()
+    else
+        _G.AutoDriveRunning = false
+    end
 end)
 
 local speedInput = Instance.new("TextBox")
