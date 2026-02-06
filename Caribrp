@@ -57,7 +57,7 @@ end
 
 -- Once the bar is full, update title
 title.Text = "Executing Script..."
-task.wait(0.5) -- small pause before executing
+task.wait(2) -- small pause before executing
 
 --// EXECUTE SCRIPT AFTER "LOADING"
 local success, err = pcall(function()
@@ -70,5 +70,5 @@ end
 
 -- Finish
 title.Text = "Loaded!"
-task.wait(0.7)
+task.wait(10)
 screenGui:Destroy()
