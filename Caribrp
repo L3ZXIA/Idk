@@ -1,48 +1,74 @@
+--// SERVICES
 local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
-local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
-if PlayerGui:FindFirstChild("ScriptLoaderGUI") then
-    PlayerGui.ScriptLoaderGUI:Destroy()
+--// CREATE LOADER GUI
+local screenGui = Instance.new("ScreenGui")
+screenGui.ResetOnSpawn = false
+screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+
+local bg = Instance.new("Frame")
+bg.Size = UDim2.new(0, 400, 0, 100)
+bg.Position = UDim2.new(0.5, -200, 0.5, -50)
+bg.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+bg.BorderSizePixel = 0
+bg.Parent = screenGui
+Instance.new("UICorner", bg).CornerRadius = UDim.new(0, 12)
+
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, -20, 0, 25)
+title.Position = UDim2.new(0, 10, 0, 10)
+title.BackgroundTransparency = 1
+title.Text = "Loading Script..."
+title.Font = Enum.Font.GothamBold
+title.TextSize = 18
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.TextXAlignment = Enum.TextXAlignment.Left
+title.Parent = bg
+
+local barBg = Instance.new("Frame")
+barBg.Size = UDim2.new(1, -20, 0, 20)
+barBg.Position = UDim2.new(0, 10, 0, 60)
+barBg.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+barBg.BorderSizePixel = 0
+barBg.Parent = bg
+Instance.new("UICorner", barBg).CornerRadius = UDim.new(0, 6)
+
+local barFill = Instance.new("Frame")
+barFill.Size = UDim2.new(0, 0, 1, 0)
+barFill.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
+barFill.BorderSizePixel = 0
+barFill.Parent = barBg
+Instance.new("UICorner", barFill).CornerRadius = UDim.new(0, 6)
+
+--// LOADER LOGIC
+local loadTime = 2.5 -- seconds you want the loading bar to fill before executing
+local elapsed = 0
+local progress = 0
+
+-- Animate the bar over time before executing
+while progress < 1 do
+    local dt = RunService.RenderStepped:Wait()
+    elapsed += dt
+    progress = math.clamp(elapsed / loadTime, 0, 1)
+    barFill.Size = UDim2.new(progress, 0, 1, 0)
 end
 
-local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "ScriptLoaderGUI"
-screenGui.ResetOnSpawn = false
-screenGui.Parent = PlayerGui
+-- Once the bar is full, update title
+title.Text = "Executing Script..."
+task.wait(0.5) -- small pause before executing
 
-local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 300, 0, 100)
-frame.Position = UDim2.new(0.5, -150, 0.5, -50)
-frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-frame.BorderSizePixel = 0
-frame.Parent = screenGui
-Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 12)
-
-local label = Instance.new("TextLabel")
-label.Size = UDim2.new(1, -20, 1, -20)
-label.Position = UDim2.new(0, 10, 0, 10)
-label.BackgroundTransparency = 1
-label.Text = "Loading script..."
-label.Font = Enum.Font.GothamBold
-label.TextSize = 18
-label.TextColor3 = Color3.fromRGB(255, 255, 255)
-label.Parent = frame
-
-task.spawn(function()
-    task.wait(20) -- Optional: show loader for 20 second
-
-    local success, err = pcall(function()
-        loadstring(game:HttpGet("https://raw.githubusercontent.com/L3ZXIA/Idk/refs/heads/main/Caribrp%20script", true))()
-    end)
-
-    if not success then
-        label.Text = "Error loading script:\n" .. tostring(err)
-        label.TextColor3 = Color3.fromRGB(255, 100, 100)
-    else
-        label.Text = "Script loaded successfully!"
-        label.TextColor3 = Color3.fromRGB(100, 255, 100)
-        task.wait(1)
-        screenGui:Destroy()
-    end
+--// EXECUTE SCRIPT AFTER "LOADING"
+local success, err = pcall(function()
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/L3ZXIA/Idk/refs/heads/main/Caribrp%20script"))()
 end)
+
+if not success then
+    warn("Failed to load script:", err)
+end
+
+-- Finish
+title.Text = "Loaded!"
+task.wait(0.7)
+screenGui:Destroy()
