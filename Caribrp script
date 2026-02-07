@@ -478,7 +478,6 @@ local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local plr = Players.LocalPlayer
 
---// FUNCTIONS
 local function getCar()
     local char = plr.Character
     if not char then return end
@@ -493,13 +492,11 @@ local function getCar()
 end
 
 local function startDrive()
-    -- Prevent double loops
-    if AutoDriveRunning then return end
-    AutoDriveRunning = true
+    if _G.AutoDriveRunning then return end
+    _G.AutoDriveRunning = true
 
     task.spawn(function()
         local index = 1
-
         while AutoDrive do
             local car, root = getCar()
             if not car then
@@ -507,7 +504,6 @@ local function startDrive()
                 continue
             end
 
-            -- TELEPORT ONCE AT START
             if not DidTeleport then
                 local nextPoint = ROUTE[index + 1] or ROUTE[1]
                 local startCFrame = CFrame.new(
@@ -519,20 +515,18 @@ local function startDrive()
                 DidTeleport = true
             end
 
-            -- TARGET POSITION
             local target = Vector3.new(ROUTE[index].X, root.Position.Y, ROUTE[index].Z)
             local dir = target - root.Position
             dir = Vector3.new(dir.X, 0, dir.Z)
 
             if dir.Magnitude > 0 then
                 dir = dir.Unit
-                -- SMOOTH ROTATION TOWARD TARGET
+
                 root.CFrame = root.CFrame:Lerp(CFrame.new(root.Position, root.Position + dir), 0.2)
                 -- APPLY FORWARD VELOCITY
                 root.AssemblyLinearVelocity = Vector3.new(dir.X * DriveSpeed, root.AssemblyLinearVelocity.Y, dir.Z * DriveSpeed)
             end
 
-            -- NEXT WAYPOINT
             if (root.Position - target).Magnitude < 35 then
                 index += 1
                 if index > #ROUTE then index = 1 end
@@ -541,7 +535,6 @@ local function startDrive()
             RunService.Heartbeat:Wait()
         end
 
-        -- STOP CAR
         local _, root = getCar()
         if root then
             root.AssemblyLinearVelocity = Vector3.zero
@@ -549,10 +542,10 @@ local function startDrive()
 
         DidTeleport = false
         AutoDriveRunning = false
+        _G.AutoDriveRunning = false
     end)
 end
 
---// GUI ELEMENTS
 local autoToggle = Instance.new("TextButton")
 autoToggle.Size = UDim2.new(1, 0, 0, 40)
 autoToggle.Text = "Auto Drive: OFF"
@@ -572,7 +565,6 @@ autoToggle.MouseButton1Click:Connect(function()
     end
 end)
 
--- Speed Input
 local speedInput = Instance.new("TextBox")
 speedInput.Size = UDim2.new(1, 0, 0, 36)
 speedInput.PlaceholderText = "Drive Speed (default 200)"
@@ -939,21 +931,33 @@ antiToggle.Parent = scroll
 Instance.new("UICorner", antiToggle).CornerRadius = UDim.new(0, 8)
 
 antiToggle.MouseButton1Click:Connect(function()
-	playerSettings.AntiAFK = not playerSettings.AntiAFK
-	antiToggle.Text = playerSettings.AntiAFK and "Anti-AFK: ON" or "Anti-AFK: OFF"
-end)
+    playerSettings.AntiAFK = not playerSettings.AntiAFK
+    antiToggle.Text = playerSettings.AntiAFK and "Anti-AFK: ON" or "Anti-AFK: OFF"
 
-local VirtualUser = game:GetService("VirtualUser")
-RunService.Stepped:Connect(function()
-	if playerSettings.AntiAFK then
-		if LocalPlayer then
-			LocalPlayer.Idled:Connect(function()
-				VirtualUser:Button2Down(Vector2.new(0,0),workspace.CurrentCamera.CFrame)
-				task.wait(1)
-				VirtualUser:Button2Up(Vector2.new(0,0),workspace.CurrentCamera.CFrame)
-			end)
-		end
-	end
+    if playerSettings.AntiAFK and not _G.AntiAFKRunning then
+        _G.AntiAFKRunning = true
+        task.spawn(function()
+            local LocalPlayer = game:GetService("Players").LocalPlayer
+            local VirtualUser = game:GetService("VirtualUser")
+            local conn
+            conn = LocalPlayer.Idled:Connect(function()
+                if playerSettings.AntiAFK then
+                    VirtualUser:Button2Down(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
+                    task.wait(1)
+                    VirtualUser:Button2Up(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
+                end
+            end)
+            
+            while playerSettings.AntiAFK do
+                RunService.Heartbeat:Wait()  -- loop safely without stacking connections
+            end
+
+            if conn then
+                conn:Disconnect()
+            end
+            _G.AntiAFKRunning = false
+        end)
+    end
 end)
 
 local flyEnabled = false
