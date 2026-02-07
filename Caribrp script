@@ -27,11 +27,13 @@ do
 			startPos = main.Position
 		end
 	end)
+
 	main.InputEnded:Connect(function(i)
 		if i.UserInputType == Enum.UserInputType.MouseButton1 then
 			dragging = false
 		end
 	end)
+	
 	UIS.InputChanged:Connect(function(i)
 		if dragging and i.UserInputType == Enum.UserInputType.MouseMovement then
 			local delta = i.Position - dragStart
@@ -161,13 +163,15 @@ newTab("Player Settings", 4)
 newTab("GUI Settings", 5)
 newTab("Credits", 6)
 
+--// AUTO DRIVE PAGE
 local autoDrivePage = Pages["Auto Drive"] or newPage("Auto Drive")
 
+--// SCROLL FRAME
 local scroll = Instance.new("ScrollingFrame")
 scroll.Size = UDim2.new(1, 0, 1, 0)
 scroll.BackgroundTransparency = 1
 scroll.ScrollBarThickness = 6
-scroll.CanvasSize = UDim2.new(0, 0, 0, 150) -- Adjust height as needed
+scroll.CanvasSize = UDim2.new(0, 0, 0, 150) -- adjust as needed
 scroll.Parent = autoDrivePage
 
 local uiList = Instance.new("UIListLayout")
@@ -182,7 +186,9 @@ uiPadding.PaddingRight = UDim.new(0, 10)
 uiPadding.PaddingBottom = UDim.new(0, 10)
 uiPadding.Parent = scroll
 
+--// VARIABLES
 local AutoDrive = false
+local AutoDriveRunning = false
 local DriveSpeed = 200
 local DidTeleport = false
 
@@ -472,6 +478,7 @@ local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local plr = Players.LocalPlayer
 
+--// FUNCTIONS
 local function getCar()
     local char = plr.Character
     if not char then return end
@@ -485,74 +492,67 @@ local function getCar()
     return car, root
 end
 
-_G.AutoDriveRunning = false
 local function startDrive()
-    if _G.AutoDriveRunning then return end
-    _G.AutoDriveRunning = true
+    -- Prevent double loops
+    if AutoDriveRunning then return end
+    AutoDriveRunning = true
 
     task.spawn(function()
         local index = 1
 
-        while getfenv().AutoDrive do
+        while AutoDrive do
             local car, root = getCar()
             if not car then
                 task.wait(0.3)
                 continue
             end
 
-            if not getfenv().DidTeleport then
-                car:PivotTo(CFrame.new(
-                    Vector3.new(ROUTE[1].X, ROUTE[1].Y + 2, ROUTE[1].Z)
-                ))
+            -- TELEPORT ONCE AT START
+            if not DidTeleport then
+                local nextPoint = ROUTE[index + 1] or ROUTE[1]
+                local startCFrame = CFrame.new(
+                    Vector3.new(ROUTE[index].X, root.Position.Y + 2, ROUTE[index].Z),
+                    Vector3.new(nextPoint.X, root.Position.Y + 2, nextPoint.Z)
+                )
+                car:PivotTo(startCFrame)
                 task.wait(0.4)
-                getfenv().DidTeleport = true
+                DidTeleport = true
             end
 
-            local target = Vector3.new(
-                ROUTE[index].X,
-                root.Position.Y,
-                ROUTE[index].Z
-            )
-
+            -- TARGET POSITION
+            local target = Vector3.new(ROUTE[index].X, root.Position.Y, ROUTE[index].Z)
             local dir = target - root.Position
             dir = Vector3.new(dir.X, 0, dir.Z)
 
             if dir.Magnitude > 0 then
                 dir = dir.Unit
-
-                root.CFrame = CFrame.new(
-    root.Position,
-    root.Position + dir
-)
-                )
-
-                root.AssemblyLinearVelocity = Vector3.new(
-    dir.X * getfenv().DriveSpeed,
-    0,
-    dir.Z * getfenv().DriveSpeed
-)
+                -- SMOOTH ROTATION TOWARD TARGET
+                root.CFrame = root.CFrame:Lerp(CFrame.new(root.Position, root.Position + dir), 0.2)
+                -- APPLY FORWARD VELOCITY
+                root.AssemblyLinearVelocity = Vector3.new(dir.X * DriveSpeed, root.AssemblyLinearVelocity.Y, dir.Z * DriveSpeed)
             end
 
+            -- NEXT WAYPOINT
             if (root.Position - target).Magnitude < 35 then
                 index += 1
-                if index > #ROUTE then
-                    index = 1
-                end
+                if index > #ROUTE then index = 1 end
             end
 
-            task.wait(0.05)
+            RunService.Heartbeat:Wait()
         end
 
+        -- STOP CAR
         local _, root = getCar()
         if root then
             root.AssemblyLinearVelocity = Vector3.zero
         end
 
-        getfenv().DidTeleport = false
-        _G.AutoDriveRunning = false
+        DidTeleport = false
+        AutoDriveRunning = false
     end)
 end
 
+--// GUI ELEMENTS
 local autoToggle = Instance.new("TextButton")
 autoToggle.Size = UDim2.new(1, 0, 0, 40)
 autoToggle.Text = "Auto Drive: OFF"
@@ -565,16 +565,14 @@ autoToggle.Parent = scroll
 Instance.new("UICorner", autoToggle).CornerRadius = UDim.new(0, 8)
 
 autoToggle.MouseButton1Click:Connect(function()
-    getfenv().AutoDrive = not getfenv().AutoDrive
-    autoToggle.Text = getfenv().AutoDrive and "Auto Drive: ON" or "Auto Drive: OFF"
-
-    if getfenv().AutoDrive then
+    AutoDrive = not AutoDrive
+    autoToggle.Text = AutoDrive and "Auto Drive: ON" or "Auto Drive: OFF"
+    if AutoDrive then
         startDrive()
-    else
-        _G.AutoDriveRunning = false
     end
 end)
 
+-- Speed Input
 local speedInput = Instance.new("TextBox")
 speedInput.Size = UDim2.new(1, 0, 0, 36)
 speedInput.PlaceholderText = "Drive Speed (default 200)"
@@ -589,7 +587,9 @@ Instance.new("UICorner", speedInput).CornerRadius = UDim.new(0, 8)
 
 speedInput.FocusLost:Connect(function()
     local val = tonumber(speedInput.Text)
-    if val then DriveSpeed = val end
+    if val then
+        DriveSpeed = val
+    end
 end)
 
 local note = Instance.new("TextLabel")
