@@ -163,8 +163,10 @@ newTab("Player Settings", 4)
 newTab("GUI Settings", 5)
 newTab("Credits", 6)
 
+--// AUTO DRIVE PAGE
 local autoDrivePage = Pages["Auto Drive"] or newPage("Auto Drive")
 
+--// SCROLL FRAME
 local scroll = Instance.new("ScrollingFrame")
 scroll.Size = UDim2.new(1, 0, 1, 0)
 scroll.BackgroundTransparency = 1
@@ -184,11 +186,13 @@ uiPadding.PaddingRight = UDim.new(0, 10)
 uiPadding.PaddingBottom = UDim.new(0, 10)
 uiPadding.Parent = scroll
 
+--// VARIABLES
 local AutoDrive = false
 local AutoDriveRunning = false
 local DriveSpeed = 200
 local DidTeleport = false
 
+local ROUTE = {
 Vector3.new(-1058.97, 37.07, -1331.45),
 Vector3.new(-1062.31, 0, -206.50),
 Vector3.new(-1064.08, 0, -129.96),
@@ -542,6 +546,7 @@ local function startDrive()
     end)
 end
 
+--// GUI ELEMENTS
 local autoToggle = Instance.new("TextButton")
 autoToggle.Size = UDim2.new(1, 0, 0, 40)
 autoToggle.Text = "Auto Drive: OFF"
@@ -561,6 +566,7 @@ autoToggle.MouseButton1Click:Connect(function()
     end
 end)
 
+-- Speed Input
 local speedInput = Instance.new("TextBox")
 speedInput.Size = UDim2.new(1, 0, 0, 36)
 speedInput.PlaceholderText = "Drive Speed (default 200)"
@@ -865,6 +871,22 @@ RunService.Stepped:Connect(function()
 	end
 end)
 
+-- Services
+local Players = game:GetService("Players")
+local VirtualUser = game:GetService("VirtualUser")
+
+local LocalPlayer = Players.LocalPlayer
+local AntiAFKEnabled = false
+
+-- SINGLE Anti-AFK listener (no lag)
+LocalPlayer.Idled:Connect(function()
+    if AntiAFKEnabled then
+        VirtualUser:Button2Down(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
+        task.wait(1)
+        VirtualUser:Button2Up(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
+    end
+end)
+
 local playerPage = newPage("Player Settings")
 
 local scroll = Instance.new("ScrollingFrame")
@@ -927,33 +949,21 @@ antiToggle.Parent = scroll
 Instance.new("UICorner", antiToggle).CornerRadius = UDim.new(0, 8)
 
 antiToggle.MouseButton1Click:Connect(function()
-    playerSettings.AntiAFK = not playerSettings.AntiAFK
-    antiToggle.Text = playerSettings.AntiAFK and "Anti-AFK: ON" or "Anti-AFK: OFF"
+    AntiAFKEnabled = not AntiAFKEnabled
+    antiToggle.Text = AntiAFKEnabled and "Anti-AFK: ON" or "Anti-AFK: OFF"
+end)
 
-    if playerSettings.AntiAFK and not _G.AntiAFKRunning then
-        _G.AntiAFKRunning = true
-        task.spawn(function()
-            local LocalPlayer = game:GetService("Players").LocalPlayer
-            local VirtualUser = game:GetService("VirtualUser")
-            local conn
-            conn = LocalPlayer.Idled:Connect(function()
-                if playerSettings.AntiAFK then
-                    VirtualUser:Button2Down(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
-                    task.wait(1)
-                    VirtualUser:Button2Up(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
-                end
-            end)
-            
-            while playerSettings.AntiAFK do
-                RunService.Heartbeat:Wait()  -- loop safely without stacking connections
-            end
-
-            if conn then
-                conn:Disconnect()
-            end
-            _G.AntiAFKRunning = false
-        end)
-    end
+local VirtualUser = game:GetService("VirtualUser")
+RunService.Stepped:Connect(function()
+	if playerSettings.AntiAFK then
+		if LocalPlayer then
+			LocalPlayer.Idled:Connect(function()
+				VirtualUser:Button2Down(Vector2.new(0,0),workspace.CurrentCamera.CFrame)
+				task.wait(1)
+				VirtualUser:Button2Up(Vector2.new(0,0),workspace.CurrentCamera.CFrame)
+			end)
+		end
+	end
 end)
 
 local flyEnabled = false
